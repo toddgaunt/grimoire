@@ -14,15 +14,16 @@ type Param struct {
 	DefaultValues []string
 }
 
-// SpellSegments represents a spell split into segments where parameters can be substituted
-type SpellSegments struct {
+// Spell represents a parsed spell split into segments where parameters can be substituted
+type Spell struct {
+	Raw          string   // The original unparsed spell
 	Segments     []string // All segments (text and parameter names)
 	ParamIndices []int    // Indices in Segments that contain parameter names
 	Params       []Param  // Unique parameters with their default values
 }
 
-// Reconstruct rebuilds the spell with the given parameter values
-func (ss *SpellSegments) Reconstruct(paramValues map[string]string) (string, error) {
+// Substitute rebuilds the spell with the given parameter values
+func (ss *Spell) Substitute(paramValues map[string]string) (string, error) {
 	result := make([]string, len(ss.Segments))
 	copy(result, ss.Segments)
 
@@ -43,12 +44,12 @@ func (ss *SpellSegments) Reconstruct(paramValues map[string]string) (string, err
 // Parameter segments are replaced with just the parameter name, and are marked
 // by ParamIndices for later substitution.
 // Format can be: <param_name> or <param_name=default;default2>
-func ParseSpell(spell string) (*SpellSegments, error) {
+func ParseSpell(spell string) (*Spell, error) {
 	matches := paramRegex.FindAllStringSubmatchIndex(spell, -1)
 
 	if len(matches) == 0 {
 		// No parameters, return a single segment
-		return &SpellSegments{
+		return &Spell{
 			Segments:     []string{spell},
 			ParamIndices: []int{},
 			Params:       []Param{},
@@ -113,7 +114,8 @@ func ParseSpell(spell string) (*SpellSegments, error) {
 		params = append(params, paramMap[name])
 	}
 
-	return &SpellSegments{
+	return &Spell{
+		Raw:          spell,
 		Segments:     segments,
 		ParamIndices: paramIndices,
 		Params:       params,

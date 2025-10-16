@@ -11,7 +11,7 @@ import (
 func TestSpellSegmentsSubstitute(t *testing.T) {
 	var testCases = []struct {
 		name          string
-		spellSegments *SpellSegments
+		spellSegments *Spell
 		paramValues   map[string]string
 
 		want string
@@ -19,7 +19,7 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 	}{
 		{
 			name: "no parameters",
-			spellSegments: &SpellSegments{
+			spellSegments: &Spell{
 				Segments:     []string{"echo Hello World"},
 				ParamIndices: []int{},
 				Params:       []Param{},
@@ -30,7 +30,7 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 		},
 		{
 			name: "single parameter",
-			spellSegments: &SpellSegments{
+			spellSegments: &Spell{
 				Segments:     []string{"echo ", "name"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -43,7 +43,7 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 		},
 		{
 			name: "multiple parameters",
-			spellSegments: &SpellSegments{
+			spellSegments: &Spell{
 				Segments:     []string{"cp ", "source", " ", "destination"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -57,7 +57,7 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 		},
 		{
 			name: "missing parameter value",
-			spellSegments: &SpellSegments{
+			spellSegments: &Spell{
 				Segments:     []string{"mv ", "oldname", " ", "newname"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -75,7 +75,7 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			result, err := tc.spellSegments.Reconstruct(tc.paramValues)
+			result, err := tc.spellSegments.Substitute(tc.paramValues)
 
 			if !test.ErrorTextEqual(err, tc.err) {
 				t.Fatalf("got error %q, want error %q", err, tc.err)
@@ -93,14 +93,14 @@ func TestParseSpell(t *testing.T) {
 		name  string
 		spell string
 
-		want *SpellSegments
+		want *Spell
 		err  error
 	}{
 		{
 			name:  "ok - no parameters",
 			spell: "echo Hello World",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo Hello World"},
 				ParamIndices: []int{},
 				Params:       []Param{},
@@ -110,7 +110,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - single parameter",
 			spell: "echo <name>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo ", "name"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -122,7 +122,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - parameter with default",
 			spell: "echo <name=World>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo ", "name"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -134,7 +134,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - multiple parameters with defaults",
 			spell: "cp <source=file.txt> <destination=backup.txt>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"cp ", "source", " ", "destination"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -147,7 +147,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - parameter with multiple defaults",
 			spell: "mv <oldname=file1.txt;file_old.txt> <newname=file2.txt;file_new.txt>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"mv ", "oldname", " ", "newname"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -160,7 +160,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - repeated parameters",
 			spell: "echo <name> and again <name>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo ", "name", " and again ", "name"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -172,7 +172,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - repeated parameter with default only on first occurrence",
 			spell: "echo <name=World> and again <name>",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo ", "name", " and again ", "name"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -184,7 +184,7 @@ func TestParseSpell(t *testing.T) {
 			name:  "ok - trailing text following last parameter",
 			spell: "echo <name> trailing segment test",
 
-			want: &SpellSegments{
+			want: &Spell{
 				Segments:     []string{"echo ", "name", " trailing segment test"},
 				ParamIndices: []int{1},
 				Params: []Param{

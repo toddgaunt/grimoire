@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,6 +16,7 @@ type Entry struct {
 	Spell string
 	Name  string
 	Desc  string
+	Tags  []string
 }
 
 type Config struct {
@@ -42,10 +44,12 @@ func main() {
 
 	if err := checkFzf(); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 
 	if err := EnsurePathExists(conf.SpellPath); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 
 	if len(os.Args) < 2 {
@@ -61,40 +65,36 @@ func main() {
 		usage()
 		os.Exit(0)
 	case "add":
-		err := addCommand(conf, args)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+		err = addCommand(conf, args)
 	case "edit":
-		editCommand(conf, args)
+		err = editCommand(conf, args)
 	case "view":
-		err := viewCommand(conf, args)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+		err = viewCommand(conf, args)
 	case "cast":
-		err := castCommand(conf)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+		err = castCommand(conf)
+	case "find":
+		err = findCommand(conf, args)
 	case "forget":
-		err := forgetCommand(conf)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
-		}
+		err = forgetCommand(conf)
 	default:
 		fmt.Printf("Unknown subcommand: %s\n", subcommand)
 		usage()
 		os.Exit(1)
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 	}
 }
 
 func usage() {
 	fmt.Println("To best make use of this magical tome, you must give it a command.")
 	fmt.Println("Commands:")
+	fmt.Println("  help - Show this help message and exit")
 	fmt.Println("  add  - Add a new spell to the grimoire")
 	fmt.Println("  edit - Edit an existing spell in the grimoire")
 	fmt.Println("  view - View details of a spell from the grimoire")
+	fmt.Println("  find - Find a spell in the grimoire and print it to stdout")
 	fmt.Println("  cast - Cast a spell from the grimoire")
 }
 
@@ -181,7 +181,6 @@ func prompt(args []string) (Entry, error) {
 		return entry, errors.New("too many arguments")
 	}
 
-	// Check for scanner errors
 	if err := reader.Err(); err != nil {
 		return entry, err
 	}
@@ -189,7 +188,47 @@ func prompt(args []string) (Entry, error) {
 	return entry, nil
 }
 
-func write(spellPath string, entry Entry) error {
+func readSpell(spellPath, filename string) (Entry, error) {
+	var entry Entry
+
+	filepath := path.Join(spellPath, filename)
+
+	contents, err := os.ReadFile(filepath)
+	if err != nil {
+		return entry, err
+	}
+
+	// Parse the file contents
+	lines := strings.Split(string(contents), "\n")
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		if strings.HasPrefix(line, "Spell: ") {
+			entry.Spell = strings.TrimPrefix(line, "Spell: ")
+		} else if strings.HasPrefix(line, "Name: ") {
+			entry.Name = strings.TrimPrefix(line, "Name: ")
+		} else if strings.HasPrefix(line, "Description: ") {
+			entry.Desc = strings.TrimPrefix(line, "Description: ")
+		} else if strings.HasPrefix(line, "Tags: ") {
+			tagsStr := strings.TrimPrefix(line, "Tags: ")
+			if tagsStr != "" {
+				tags := strings.Split(tagsStr, ",")
+				for i := range tags {
+					tags[i] = strings.TrimSpace(tags[i])
+				}
+				entry.Tags = tags
+			}
+		}
+	}
+
+	return entry, nil
+}
+
+func writeSpell(spellPath string, entry Entry) error {
 	// Create filename from name (sanitize it for filesystem)
 	filename := SanitizeFilename(entry.Name) + ".txt"
 	filepath := filepath.Join(spellPath, filename)
@@ -207,6 +246,11 @@ func write(spellPath string, entry Entry) error {
 		entry.Desc,
 	)
 
+	// Add tags if provided
+	if len(entry.Tags) > 0 {
+		content += fmt.Sprintf("\nTags: %s", strings.Join(entry.Tags, ", "))
+	}
+
 	// Write the file
 	if err := os.WriteFile(filepath, []byte(content), 0644); err != nil {
 		return err
@@ -218,12 +262,28 @@ func write(spellPath string, entry Entry) error {
 }
 
 func addCommand(conf Config, args []string) error {
+	// Parse args for -t flag using the go flag package
+	var tags string
+	flagSet := flag.NewFlagSet("add", flag.ExitOnError)
+	flagSet.StringVar(&tags, "t", "", "Specify comma-delimited tags for the spell")
+	flagSet.Parse(args)
+
+	// Get the remaining positional arguments
+	args = flagSet.Args()
+
 	entry, err := prompt(args)
 	if err != nil {
 		return err
 	}
 
-	err = write(conf.SpellPath, entry)
+	if len(tags) > 0 {
+		entry.Tags = strings.Split(tags, ",")
+		for i := range entry.Tags {
+			entry.Tags[i] = strings.TrimSpace(entry.Tags[i])
+		}
+	}
+
+	err = writeSpell(conf.SpellPath, entry)
 	if err != nil {
 		return err
 	}
@@ -284,6 +344,27 @@ func viewCommand(conf Config, _ []string) error {
 	return nil
 }
 
+func findCommand(conf Config, args []string) error {
+	selection, err := find(conf.SpellPath)
+	if err != nil {
+		return err
+	}
+
+	if selection == "" {
+		fmt.Println("No spell selected")
+		return nil
+	}
+
+	entry, err := readSpell(conf.SpellPath, selection)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s", entry.Spell)
+
+	return nil
+}
+
 func castCommand(conf Config) error {
 	selection, err := find(conf.SpellPath)
 	if err != nil {
@@ -307,54 +388,24 @@ func castCommand(conf Config) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "Spell: ") {
-			spell := strings.TrimPrefix(line, "Spell: ")
+			spellText := strings.TrimPrefix(line, "Spell: ")
 
-			spellSegments, err := ParseSpell(spell)
+			spell, err := ParseSpell(spellText)
 			if err != nil {
 				return err
 			}
 
-			if len(spellSegments.Params) > 0 {
-				fmt.Printf("Invoke: %s\n", spell)
-
-				// Prompt user for parameters
-				paramValues := make(map[string]string)
-				reader := bufio.NewScanner(os.Stdin)
-				for _, param := range spellSegments.Params {
-					prompt := fmt.Sprintf("Value for <%s>", param.Name)
-					if len(param.DefaultValues) > 0 {
-						prompt += fmt.Sprintf(" (default: %s)", strings.Join(param.DefaultValues, ", "))
-					}
-					prompt += ": "
-
-					fmt.Print(prompt)
-					if reader.Scan() {
-						input := strings.TrimSpace(reader.Text())
-						if input != "" {
-							paramValues[param.Name] = input
-						}
-						// If input is empty and there are default values, use the first default
-						if input == "" && len(param.DefaultValues) > 0 {
-							paramValues[param.Name] = param.DefaultValues[0]
-						}
-					}
-				}
-
-				if err := reader.Err(); err != nil {
-					return err
-				}
-
-				// Reconstruct the spell with provided parameters
-				spell, err = spellSegments.Reconstruct(paramValues)
+			if len(spell.Params) > 0 {
+				spellText, err = promptParameters(spell)
 				if err != nil {
 					return err
 				}
 			}
 
-			fmt.Printf("Casting: %s\n", spell)
+			fmt.Printf("%s\n", spellText)
 
 			// Start a subprocess to run the spell
-			cmd := exec.Command("bash", "-c", spell)
+			cmd := exec.Command("bash", "-c", spellText)
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
@@ -386,6 +437,38 @@ func forgetCommand(conf Config) error {
 	return nil
 }
 
-func promptParameters() {
+// prompt parameters uses shell prompts to substitute parameters in a spell.
+func promptParameters(spell *Spell) (string, error) {
+	fmt.Printf("Casting: %s\n", spell.Raw)
 
+	// Prompt user for parameters
+	paramValues := make(map[string]string)
+	reader := bufio.NewScanner(os.Stdin)
+	for _, param := range spell.Params {
+		prompt := fmt.Sprintf("Substitute <%s>", param.Name)
+		if len(param.DefaultValues) > 0 {
+			prompt += fmt.Sprintf(" (default: %s)", strings.Join(param.DefaultValues, ", "))
+		}
+		prompt += ": "
+
+		fmt.Print(prompt)
+		if reader.Scan() {
+			input := strings.TrimSpace(reader.Text())
+			if input != "" {
+				paramValues[param.Name] = input
+			}
+			// If input is empty and there are default values, use the first default
+			if input == "" && len(param.DefaultValues) > 0 {
+				paramValues[param.Name] = param.DefaultValues[0]
+			}
+		}
+
+	}
+
+	if err := reader.Err(); err != nil {
+		return "", err
+	}
+
+	// Reconstruct the spell with provided parameters
+	return spell.Substitute(paramValues)
 }
