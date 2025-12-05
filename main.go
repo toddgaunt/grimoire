@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -53,8 +52,12 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		usage()
-		os.Exit(1)
+		err := mainCommand(conf)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			os.Exit(1)
+		}
+		return
 	}
 
 	subcommand := os.Args[1]
@@ -71,9 +74,9 @@ func main() {
 	case "view":
 		err = viewCommand(conf, args)
 	case "cast":
-		err = castCommand(conf)
-	case "find":
-		err = findCommand(conf, args)
+		err = castCommand(conf, args)
+	case "echo":
+		err = echoCommand(conf, args)
 	case "forget":
 		err = forgetCommand(conf)
 	default:
@@ -93,99 +96,51 @@ func usage() {
 	fmt.Println("  help - Show this help message and exit")
 	fmt.Println("  add  - Add a new spell to the grimoire")
 	fmt.Println("  edit - Edit an existing spell in the grimoire")
-	fmt.Println("  view - View details of a spell from the grimoire")
-	fmt.Println("  find - Find a spell in the grimoire and print it to stdout")
+	fmt.Println("  view - View all details of a spell from the grimoire")
+	fmt.Println("  echo - Find a spell in the grimoire and echo it to stdout")
 	fmt.Println("  cast - Cast a spell from the grimoire")
 }
 
-func prompt(args []string) (Entry, error) {
-	reader := bufio.NewScanner(os.Stdin)
+func mainCommand(conf Config) error {
+	// If no arguments are provided, start by launching fzf to find a spell
+	// path. If it exists, prompt the user to either edit, view, or cast the spell.
+	selection, err := find(conf.SpellPath)
+	if err != nil {
+		return err
+	}
 
-	// Parse arguments
-	var entry Entry
-	switch len(args) {
-	case 0:
-		reader.Buffer([]byte(entry.Spell), bufio.MaxScanTokenSize)
-		// No arguments provided, prompt for both spell and name
-		fmt.Print("Spell> ")
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Spell = input
-			}
-		}
-		if entry.Spell == "" {
-			return entry, errors.New("command cannot be empty")
-		}
+	if selection == "" {
+		fmt.Println("No spell selected")
+		return nil
+	}
 
-		fmt.Print("Name>", entry.Name)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Name = input
-			}
-		}
-		if entry.Name == "" {
-			return entry, errors.New("name cannot be empty")
-		}
+	// Prompt the user with tab cycling
+	options := []string{"view", "cast", "edit", "echo"}
+	action, err := promptWithTabCycling(options)
+	if err != nil {
+		return err
+	}
 
-		fmt.Print("Description>", entry.Desc)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Desc = input
-			}
-		}
-	case 1:
-		// One argument provided, assume it's the spell, prompt for name
-		entry.Spell = args[0]
+	// If the user pressed escape or another key to avoid selecting
+	// an action, just do nothing.
+	if action == "" {
+		return nil
+	}
 
-		fmt.Print("Name>", entry.Name)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Name = input
-			}
-		}
-		if entry.Name == "" {
-			return entry, errors.New("name cannot be empty")
-		}
-
-		fmt.Print("Description>", entry.Desc)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Desc = input
-			}
-		}
-
-	case 2:
-		// Two arguments provided, use them as the spell
-		// and name, then prompt for the description.
-		entry.Spell = args[0]
-		entry.Name = args[1]
-
-		fmt.Print("Description>", entry.Desc)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				entry.Desc = input
-			}
-		}
-	case 3:
-		entry.Spell = args[0]
-		entry.Name = args[1]
-		entry.Desc = args[2]
-
+	switch action {
+	case "cast":
+		err = castCommand(conf, []string{selection})
+	case "edit":
+		err = editCommand(conf, []string{selection})
+	case "view":
+		err = viewCommand(conf, []string{selection})
+	case "echo":
+		err = echoCommand(conf, []string{selection})
 	default:
-		return entry, errors.New("too many arguments")
+		fmt.Println("Invalid action")
 	}
 
-	if err := reader.Err(); err != nil {
-		return entry, err
-	}
-
-	return entry, nil
+	return err
 }
 
 func readSpell(spellPath, filename string) (Entry, error) {
@@ -230,7 +185,7 @@ func readSpell(spellPath, filename string) (Entry, error) {
 
 func writeSpell(spellPath string, entry Entry) error {
 	// Create filename from name (sanitize it for filesystem)
-	filename := SanitizeFilename(entry.Name) + ".txt"
+	filename := SanitizeFilename(entry.Name)
 	filepath := filepath.Join(spellPath, filename)
 
 	// Check if file already exists
@@ -271,7 +226,7 @@ func addCommand(conf Config, args []string) error {
 	// Get the remaining positional arguments
 	args = flagSet.Args()
 
-	entry, err := prompt(args)
+	entry, err := promptSpell(args)
 	if err != nil {
 		return err
 	}
@@ -292,14 +247,19 @@ func addCommand(conf Config, args []string) error {
 }
 
 func editCommand(conf Config, args []string) error {
-	selection, err := find(conf.SpellPath)
-	if err != nil {
-		return err
+	if len(args) > 1 {
+		return fmt.Errorf("too many arguments")
 	}
 
-	if selection == "" {
-		fmt.Println("No spell selected")
-		return nil
+	selection := ""
+	if len(args) == 1 {
+		selection = args[0]
+	} else {
+		var err error
+		selection, err = find(conf.SpellPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	filepath := path.Join(conf.SpellPath, selection)
@@ -309,7 +269,7 @@ func editCommand(conf Config, args []string) error {
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	err = cmd.Run()
+	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("editor misfire: %v", err)
 	}
@@ -317,22 +277,27 @@ func editCommand(conf Config, args []string) error {
 	return nil
 }
 
-func viewCommand(conf Config, _ []string) error {
-	selection, err := find(conf.SpellPath)
-	if err != nil {
-		return err
+func viewCommand(conf Config, args []string) error {
+	if len(args) > 1 {
+		return fmt.Errorf("too many arguments")
 	}
 
-	if selection == "" {
-		fmt.Println("No spell selected")
-		return nil
+	selection := ""
+	if len(args) == 1 {
+		selection = args[0]
+	} else {
+		var err error
+		selection, err = find(conf.SpellPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	filepath := path.Join(conf.SpellPath, selection)
 
 	contents, err := os.ReadFile(filepath)
 	if err != nil {
-		return fmt.Errorf("failed to read file %s: %v", filepath, err)
+		return err
 	}
 
 	if contents[len(contents)-1] == '\n' {
@@ -344,15 +309,20 @@ func viewCommand(conf Config, _ []string) error {
 	return nil
 }
 
-func findCommand(conf Config, args []string) error {
-	selection, err := find(conf.SpellPath)
-	if err != nil {
-		return err
+func echoCommand(conf Config, args []string) error {
+	if len(args) > 1 {
+		return fmt.Errorf("too many arguments")
 	}
 
-	if selection == "" {
-		fmt.Println("No spell selected")
-		return nil
+	selection := ""
+	if len(args) == 1 {
+		selection = args[0]
+	} else {
+		var err error
+		selection, err = find(conf.SpellPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	entry, err := readSpell(conf.SpellPath, selection)
@@ -365,10 +335,20 @@ func findCommand(conf Config, args []string) error {
 	return nil
 }
 
-func castCommand(conf Config) error {
-	selection, err := find(conf.SpellPath)
-	if err != nil {
-		return err
+func castCommand(conf Config, args []string) error {
+	if len(args) > 1 {
+		return fmt.Errorf("too many arguments")
+	}
+
+	selection := ""
+	if len(args) == 1 {
+		selection = args[0]
+	} else {
+		var err error
+		selection, err = find(conf.SpellPath)
+		if err != nil {
+			return err
+		}
 	}
 
 	if selection == "" {
@@ -396,7 +376,7 @@ func castCommand(conf Config) error {
 			}
 
 			if len(spell.Params) > 0 {
-				spellText, err = promptParameters(spell)
+				spellText, err = promptSpellParameters(spell)
 				if err != nil {
 					return err
 				}
@@ -435,40 +415,4 @@ func forgetCommand(conf Config) error {
 	fmt.Printf("TODO: move %s into 'forgotten' folder\n", filepath)
 
 	return nil
-}
-
-// prompt parameters uses shell prompts to substitute parameters in a spell.
-func promptParameters(spell *Spell) (string, error) {
-	fmt.Printf("Casting: %s\n", spell.Raw)
-
-	// Prompt user for parameters
-	paramValues := make(map[string]string)
-	reader := bufio.NewScanner(os.Stdin)
-	for _, param := range spell.Params {
-		prompt := fmt.Sprintf("Substitute <%s>", param.Name)
-		if len(param.DefaultValues) > 0 {
-			prompt += fmt.Sprintf(" (default: %s)", strings.Join(param.DefaultValues, ", "))
-		}
-		prompt += ": "
-
-		fmt.Print(prompt)
-		if reader.Scan() {
-			input := strings.TrimSpace(reader.Text())
-			if input != "" {
-				paramValues[param.Name] = input
-			}
-			// If input is empty and there are default values, use the first default
-			if input == "" && len(param.DefaultValues) > 0 {
-				paramValues[param.Name] = param.DefaultValues[0]
-			}
-		}
-
-	}
-
-	if err := reader.Err(); err != nil {
-		return "", err
-	}
-
-	// Reconstruct the spell with provided parameters
-	return spell.Substitute(paramValues)
 }

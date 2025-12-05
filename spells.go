@@ -12,7 +12,7 @@ func EnsurePathExists(spellPath string) error {
 		fmt.Printf("Creating spellpath: %s\n", spellPath)
 		err = os.MkdirAll(spellPath, 0755)
 		if err != nil {
-			return fmt.Errorf("failed to create spellpath: %w\n", err)
+			return fmt.Errorf("failed to create spellpath: %w", err)
 		}
 	}
 

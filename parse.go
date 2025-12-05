@@ -41,8 +41,10 @@ func (ss *Spell) Substitute(paramValues map[string]string) (string, error) {
 }
 
 // ParseSpell splits a spell into segments and identifies parameter locations.
-// Parameter segments are replaced with just the parameter name, and are marked
-// by ParamIndices for later substitution.
+// Parameters are surrounded by angle brackets e.g. <param> or <param=value>.
+// These segments are replaced with just the parameter name, and are marked
+// by ParamIndices for later substitution with concrete values when the spell
+// is cast.
 // Format can be: <param_name> or <param_name=default;default2>
 func ParseSpell(spell string) (*Spell, error) {
 	matches := paramRegex.FindAllStringSubmatchIndex(spell, -1)
