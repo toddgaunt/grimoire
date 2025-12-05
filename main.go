@@ -96,8 +96,8 @@ func usage() {
 	fmt.Println("  help - Show this help message and exit")
 	fmt.Println("  add  - Add a new spell to the grimoire")
 	fmt.Println("  edit - Edit an existing spell in the grimoire")
-	fmt.Println("  view - View all details of a spell from the grimoire")
-	fmt.Println("  echo - Find a spell in the grimoire and echo it to stdout")
+	fmt.Println("  view - View details of a spell from the grimoire")
+	fmt.Println("  echo - Find a spell in the grimoire and print it to stdout")
 	fmt.Println("  cast - Cast a spell from the grimoire")
 }
 
@@ -115,7 +115,7 @@ func mainCommand(conf Config) error {
 	}
 
 	// Prompt the user with tab cycling
-	options := []string{"view", "cast", "edit", "echo"}
+	options := []string{"cast", "view", "edit", "echo"}
 	action, err := promptWithTabCycling(options)
 	if err != nil {
 		return err
