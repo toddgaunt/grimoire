@@ -1,8 +1,10 @@
 # 🔮 Grimoire
 
-> *Your personal bool of spells for command-line incantations*
+> *Your personal book of spells for command-line incantations*
 
 **Grimoire** is a simple shell command snippet storage and retrieval tool. Save your most powerful ~~CLI snippets~~ spells, give them memorable names, document their ~~use cases~~ arcane functionality, and invoke them with custom ~~parameters~~ sigils whenever you need.
+
+**📦 Depends on [fzf](https://github.com/junegunn/fzf) being in your PATH**
 
 ## ✨ Features
 
@@ -51,10 +53,6 @@ Spell: echo "${<var>//\//-}"
 Name: slash-to-dash
 Description: Convert all forward slashes in a variable to dashes.
 ```
-
-## 📦 Dependencies
-
-- [fzf](https://github.com/junegunn/fzf)
 
 ## 🛠️ Installation
 
