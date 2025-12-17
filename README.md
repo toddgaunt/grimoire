@@ -43,8 +43,8 @@ grimoire view <spell-name>
 ## 📖 Example Spells
 
 ```txt
+Spell: openssl x509 -inform DER -outform PEM -in <path>
 Name: commit-all
-Command: openssl x509 -inform DER -outform PEM -in <path>
 Description: Convert a DER-encoded x.509 certificate to PEM
 ```
 
