@@ -4,7 +4,7 @@
 
 **Grimoire** is a simple shell command snippet storage and retrieval tool. Save your most powerful ~~CLI snippets~~ spells, give them memorable names, document their ~~use cases~~ arcane functionality, and invoke them with custom ~~parameters~~ sigils whenever you need.
 
-**📦 Depends on [fzf](https://github.com/junegunn/fzf) being in your PATH**
+**📦 Depends on [fzf](https://github.com/junegunn/fzf) being in your $PATH**
 
 ## ✨ Features
 
