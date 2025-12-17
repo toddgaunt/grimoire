@@ -37,7 +37,7 @@ func main() {
 
 	conf := Config{
 		SpellPath: filepath.Join(homeDir, "grimoire"),
-		Editor:    "nvim",
+		Editor:    os.Getenv("EDITOR"),
 		Finder:    "fzf",
 	}
 
@@ -185,7 +185,7 @@ func readSpell(spellPath, filename string) (Entry, error) {
 
 func writeSpell(spellPath string, entry Entry) error {
 	// Create filename from name (sanitize it for filesystem)
-	filename := SanitizeFilename(entry.Name)
+	filename := entry.Name
 	filepath := filepath.Join(spellPath, filename)
 
 	// Check if file already exists
@@ -264,8 +264,14 @@ func editCommand(conf Config, args []string) error {
 
 	filepath := path.Join(conf.SpellPath, selection)
 
+	// Fallback to vi if no editor is specified
+	editor := conf.Editor
+	if editor == "" {
+		editor = "vi"
+	}
+
 	// Start a subprocess to run the spell
-	cmd := exec.Command("nvim", filepath)
+	cmd := exec.Command(editor, filepath)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
