@@ -19,9 +19,9 @@
 ## 🎓 Inspiration
 
 Grimoire was inspired by [pet](https://github.com/knqyf263/pet) but reimagined with:
-- A magical, wizard-themed aesthetic
-- A simpler, more focused codebase
-- Easier customization and understanding of internals for my own personal use
+- A magical, witch and wizard themed aesthetic
+- A simpler codebase
+- Easier customization and understanding of internals for my own personal use (simply because I wrote it)
 
 ## 🚀 Quick Start
 
