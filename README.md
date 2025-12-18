@@ -2,7 +2,9 @@
 
 > *Your personal book of spells for command-line incantations*
 
-**Grimoire** is a simple shell command snippet storage and retrieval tool. Save your most powerful ~~CLI snippets~~ spells, give them memorable names, document their ~~use cases~~ arcane functionality, and invoke them with custom ~~parameters~~ sigils whenever you need.
+**Grimoire** is a simple shell command snippet storage and retrieval tool. Save your most powerful ~~snippets~~ spells, give them memorable names, document their ~~use cases~~ arcane functionality, and cast them with custom ~~parameters~~ sigils to suite whichever situation you find yourself in.
+
+**Note that this is is very much an in-progress piece of work. While it is functional, don't expect any stability or sanity quite yet. I'm using it personally right now but its not yet what I'd consider complete.**
 
 **📦 Depends on [fzf](https://github.com/junegunn/fzf) being in your $PATH**
 
