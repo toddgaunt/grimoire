@@ -52,6 +52,7 @@ func ParseSpell(spell string) (*Spell, error) {
 	if len(matches) == 0 {
 		// No parameters, return a single segment
 		return &Spell{
+			Raw:          spell,
 			Segments:     []string{spell},
 			ParamIndices: []int{},
 			Params:       []Param{},
@@ -81,9 +82,8 @@ func ParseSpell(spell string) (*Spell, error) {
 
 		if paramStart >= 0 && paramEnd >= 0 {
 			name, defaultValues := extractParamNameAndDefaults(spell, paramStart, paramEnd)
-
 			if _, exists := paramMap[name]; exists {
-				if len(defaultValues) > 1 {
+				if len(defaultValues) > 0 {
 					return nil, fmt.Errorf("parameter '%s' appears multiple times with default values - defaults only allowed on first occurrence", name)
 				}
 			} else {

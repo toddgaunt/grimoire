@@ -73,7 +73,6 @@ func TestSpellSegmentsSubstitute(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := tc.spellSegments.Substitute(tc.paramValues)
 
@@ -101,6 +100,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo Hello World",
 
 			want: &Spell{
+				Raw:          "echo Hello World",
 				Segments:     []string{"echo Hello World"},
 				ParamIndices: []int{},
 				Params:       []Param{},
@@ -111,6 +111,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo <name>",
 
 			want: &Spell{
+				Raw:          "echo <name>",
 				Segments:     []string{"echo ", "name"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -123,6 +124,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo <name=World>",
 
 			want: &Spell{
+				Raw:          "echo <name=World>",
 				Segments:     []string{"echo ", "name"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -135,6 +137,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "cp <source=file.txt> <destination=backup.txt>",
 
 			want: &Spell{
+				Raw:          "cp <source=file.txt> <destination=backup.txt>",
 				Segments:     []string{"cp ", "source", " ", "destination"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -148,6 +151,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "mv <oldname=file1.txt;file_old.txt> <newname=file2.txt;file_new.txt>",
 
 			want: &Spell{
+				Raw:          "mv <oldname=file1.txt;file_old.txt> <newname=file2.txt;file_new.txt>",
 				Segments:     []string{"mv ", "oldname", " ", "newname"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -161,6 +165,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo <name> and again <name>",
 
 			want: &Spell{
+				Raw:          "echo <name> and again <name>",
 				Segments:     []string{"echo ", "name", " and again ", "name"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -173,6 +178,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo <name=World> and again <name>",
 
 			want: &Spell{
+				Raw:          "echo <name=World> and again <name>",
 				Segments:     []string{"echo ", "name", " and again ", "name"},
 				ParamIndices: []int{1, 3},
 				Params: []Param{
@@ -185,6 +191,7 @@ func TestParseSpell(t *testing.T) {
 			spell: "echo <name> trailing segment test",
 
 			want: &Spell{
+				Raw: "echo <name> trailing segment test",
 				Segments:     []string{"echo ", "name", " trailing segment test"},
 				ParamIndices: []int{1},
 				Params: []Param{
@@ -201,13 +208,13 @@ func TestParseSpell(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
 			result, err := ParseSpell(tc.spell)
 
 			if !test.ErrorTextEqual(err, tc.err) {
-				t.Fatalf("got error %q, want error %q", err, tc.err)
+				t.Fatalf("got error %v, want error %v", err, tc.err)
 			}
+
 			if err != nil {
 				return
 			}
