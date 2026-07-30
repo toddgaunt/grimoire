@@ -114,6 +114,13 @@ func mainCommand(conf Config) error {
 		return nil
 	}
 
+	entry, err := readSpell(conf.SpellPath, selection)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("%s: %s\n", entry.Name, entry.Spell)
+
 	// Prompt the user with tab cycling
 	options := []string{"cast", "view", "edit", "echo"}
 	action, err := promptWithTabCycling(options)
@@ -134,8 +141,6 @@ func mainCommand(conf Config) error {
 		err = editCommand(conf, []string{selection})
 	case "view":
 		err = viewCommand(conf, []string{selection})
-	case "echo":
-		err = echoCommand(conf, []string{selection})
 	default:
 		fmt.Println("Invalid action")
 	}

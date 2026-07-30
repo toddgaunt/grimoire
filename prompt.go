@@ -120,7 +120,7 @@ func promptSpell(args []string) (Entry, error) {
 	switch len(args) {
 	case 0:
 		reader.Buffer([]byte(entry.Spell), bufio.MaxScanTokenSize)
-		// No arguments provided, prompt for both spell and name
+		// No arguments provided, prompt for all fields
 		fmt.Print("Spell>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
