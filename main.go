@@ -154,9 +154,7 @@ func readSpell(spellPath, filename string) (Entry, error) {
 	}
 
 	// Parse the file contents
-	lines := strings.Split(string(contents), "\n")
-
-	for _, line := range lines {
+	for line := range strings.SplitSeq(string(contents), "\n") {
 		line = strings.TrimSpace(line)
 		if line == "" {
 			continue
@@ -373,9 +371,7 @@ func castCommand(conf Config, args []string) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Text()
-		if strings.HasPrefix(line, "Spell: ") {
-			spellText := strings.TrimPrefix(line, "Spell: ")
-
+		if spellText, ok := strings.CutPrefix(line, "Spell: "); ok {
 			spell, err := ParseSpell(spellText)
 			if err != nil {
 				return err
