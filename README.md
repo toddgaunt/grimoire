@@ -1,6 +1,7 @@
 # 🔮 Grimoire
-
 > *Your personal book of spells for command-line incantations*
+
+[demo.webm](https://github.com/user-attachments/assets/e30804d9-3253-46ac-a202-45a84eed8d91)
 
 **Grimoire** is a simple shell command snippet storage and retrieval tool. Save your most powerful ~~snippets~~ spells, give them memorable names, document their ~~use cases~~ arcane functionality, and cast them with custom ~~parameters~~ sigils to suite whichever situation you find yourself in.
 
