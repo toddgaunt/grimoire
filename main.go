@@ -218,7 +218,7 @@ func addCommand(conf Config, args []string) error {
 	// Get the remaining positional arguments
 	args = flagSet.Args()
 
-	entry, err := promptSpell(args)
+	entry, err := promptSpellAdd(args)
 	if err != nil {
 		return err
 	}

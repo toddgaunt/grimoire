@@ -112,7 +112,7 @@ func promptWithTabCycling(options []string) (string, error) {
 	}
 }
 
-func promptSpell(args []string) (Entry, error) {
+func promptSpellAdd(args []string) (Entry, error) {
 	reader := bufio.NewScanner(os.Stdin)
 
 	// Parse arguments
