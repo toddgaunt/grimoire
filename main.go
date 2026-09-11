@@ -18,27 +18,11 @@ type Entry struct {
 	Tags  []string
 }
 
-type Config struct {
-	// SpellPath is the location where spells are saved.
-	SpellPath string
-	// Editor specifes the editor to open a spell with when using the `edit` subcommand.
-	Editor string
-	// Currently ignored, Finder specifies the fuzzy finder program to use. Defaults to `fzf`.
-	Finder string
-}
-
 func main() {
-	// Get the home directory
-	homeDir, err := os.UserHomeDir()
+	conf, err := getConfig()
 	if err != nil {
-		fmt.Printf("Error: getting home directory: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
-	}
-
-	conf := Config{
-		SpellPath: filepath.Join(homeDir, "grimoire"),
-		Editor:    os.Getenv("EDITOR"),
-		Finder:    "fzf",
 	}
 
 	if err := checkFzf(); err != nil {
