@@ -204,19 +204,19 @@ func promptSpell(args []string) (Entry, error) {
 
 // promptSpellParameters uses shell prompts to substitute parameters in a spell.
 func promptSpellParameters(spell *Spell) (string, error) {
-	fmt.Printf("Casting: %s\n", spell.Raw)
+	fmt.Fprintf(os.Stderr, "%s\n", spell.Raw)
 
 	// Prompt user for parameters
 	paramValues := make(map[string]string)
 	reader := bufio.NewScanner(os.Stdin)
 	for _, param := range spell.Params {
-		prompt := fmt.Sprintf("Substitute <%s>", param.Name)
+		prompt := fmt.Sprintf("<%s>", param.Name)
 		if len(param.DefaultValues) > 0 {
 			prompt += fmt.Sprintf(" (default: %s)", strings.Join(param.DefaultValues, ", "))
 		}
-		prompt += ": "
+		prompt += " = "
 
-		fmt.Print(prompt)
+		fmt.Fprint(os.Stderr, prompt)
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
