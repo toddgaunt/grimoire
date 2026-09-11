@@ -18,7 +18,13 @@ func checkFzf() error {
 }
 
 func find(dir string) (string, error) {
-	cmd := exec.Command("fzf")
+	// Show the contents of the highlighted spell alongside the search results.
+	// The preview command runs with cmd.Dir as its working directory, so the
+	// filename fzf substitutes for {} resolves without any extra path joining.
+	cmd := exec.Command("fzf",
+		"--preview", "cat {}",
+		"--preview-window", "right:60%:wrap",
+	)
 
 	cmd.Dir = dir
 
