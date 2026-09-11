@@ -6,6 +6,8 @@ import (
 	"strings"
 )
 
+// EnsurePathExists will create the spellPath if it doesn't
+// yet already exists.
 func EnsurePathExists(spellPath string) error {
 	// Check if the spells directory exists, create if it doesn't
 	if _, err := os.Stat(spellPath); os.IsNotExist(err) {
@@ -18,13 +20,13 @@ func EnsurePathExists(spellPath string) error {
 	return nil
 }
 
+// SanitizeFilename strips leading and trailing whitespace, and removes all
+// characters that are not alphanumeric, underscores, or hyphens.
 func SanitizeFilename(name string) string {
-	// Replace spaces with underscores and remove invalid characters
 	sanitized := strings.TrimSpace(name)
 	sanitized = strings.ReplaceAll(name, " ", "_")
 	sanitized = strings.ToLower(sanitized)
 
-	// Remove characters that are not alphanumeric, underscore, or hyphen
 	var result strings.Builder
 	for _, r := range sanitized {
 		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
