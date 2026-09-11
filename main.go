@@ -37,7 +37,7 @@ func main() {
 	}
 
 	if len(os.Args) < 2 {
-		err := mainCommand(conf)
+		err := quickCast(conf)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			os.Exit(1)
@@ -88,7 +88,7 @@ func usage(w io.Writer) {
 	fmt.Fprintln(w, "  cast - Cast a spell from the grimoire")
 }
 
-func mainCommand(conf Config) error {
+func quickCast(conf Config) error {
 	// If no arguments are provided, start by finding a spell.
 	// If it exists, prompt the user for a command.
 	selection, err := find(conf.SpellPath)
@@ -101,38 +101,7 @@ func mainCommand(conf Config) error {
 		return nil
 	}
 
-	entry, err := readSpell(conf.SpellPath, selection)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintf(os.Stderr, "%s: %s\n", entry.Name, entry.Spell)
-
-	// Prompt the user with tab cycling
-	options := []string{"cast", "view", "edit", "echo"}
-	action, err := promptWithTabCycling(options)
-	if err != nil {
-		return err
-	}
-
-	// If the user pressed escape or another key to avoid selecting
-	// an action, just do nothing.
-	if action == "" {
-		return nil
-	}
-
-	switch action {
-	case "cast":
-		err = castCommand(conf, []string{selection})
-	case "edit":
-		err = editCommand(conf, []string{selection})
-	case "view":
-		err = viewCommand(conf, []string{selection})
-	case "echo":
-		err = echoCommand(conf, []string{selection})
-	default:
-		fmt.Fprintln(os.Stderr, "Invalid command")
-	}
+	err = castCommand(conf, []string{selection})
 
 	return err
 }
@@ -333,6 +302,8 @@ func echoCommand(conf Config, args []string) error {
 	return nil
 }
 
+// cast a spell, and prompt for parameters if applicable. All output that isn't
+// coming from the spell itself is printed to stderr.
 func castCommand(conf Config, args []string) error {
 	if len(args) > 1 {
 		return fmt.Errorf("too many arguments")
@@ -372,14 +343,13 @@ func castCommand(conf Config, args []string) error {
 			}
 
 			if len(spell.Params) > 0 {
+				fmt.Fprintf(os.Stderr, "%s\n", spell.Raw)
 				spellText, err = promptSpellParameters(spell)
 				if err != nil {
 					return err
 				}
 			}
 
-			// Echo the spell to stderr, not stdout: stdout belongs to the
-			// spell being cast so that its output can be piped.
 			fmt.Fprintf(os.Stderr, "%s\n", spellText)
 
 			// Start a subprocess to run the spell

@@ -5,112 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"os/signal"
 	"strings"
-	"syscall"
 )
-
-// setRawMode sets the terminal to raw mode to capture individual keystrokes.
-// Note: It would be better to use a go-native solution here rather than running
-// a sub-process to call stty for us.
-func setRawMode() error {
-	fmt.Fprint(os.Stderr, "\033[?25l")
-	cmd := exec.Command("stty", "-echo", "cbreak")
-	cmd.Stdin = os.Stdin
-	return cmd.Run()
-}
-
-// restoreTerminal restores the terminal to its normal mode.
-// Note: It would be better to use a go-native solution here rather than running
-// a sub-process to call stty for us.
-func restoreTerminal() {
-	fmt.Fprint(os.Stderr, "\033[?25h")
-	cmd := exec.Command("stty", "echo", "-cbreak")
-	cmd.Stdin = os.Stdin
-	cmd.Run()
-}
-
-// promptWithTabCycling allows the user to cycle through options using the tab key
-func promptWithTabCycling(options []string) (string, error) {
-	if len(options) == 0 {
-		return "", errors.New("no options provided")
-	}
-
-	done := make(chan struct{})
-
-	// Set up signal handling to ensure cursor is restored on Ctrl+C
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-
-	// Handle signals in a goroutine
-	go func() {
-		select {
-		case <-c:
-			restoreTerminal()
-			os.Exit(130) // Exit with code 130 (128 + SIGINT)
-		case <-done:
-		}
-	}()
-
-	defer func() {
-		done <- struct{}{}
-		close(c)
-		restoreTerminal()
-	}()
-
-	// Set terminal to raw mode to capture individual keystrokes and hide the cursor
-	if err := setRawMode(); err != nil {
-		return "", err
-	}
-
-	currentIndex := 0
-
-	// fmtOpts uses the currentIndex to highlight one
-	// option as red and returns all options joined by |
-	var fmtOpts = func(options []string) string {
-		var result []string
-		for i, option := range options {
-			if i == currentIndex {
-				// Highlight the current option with reverse colors
-				result = append(result, fmt.Sprintf("\033[7m%s\033[0m", option))
-			} else {
-				result = append(result, option)
-			}
-		}
-		return strings.Join(result, "|")
-	}
-
-	fmt.Fprintln(os.Stderr, "Use <tab> to select:")
-	fmt.Fprintf(os.Stderr, "%s", fmtOpts(options))
-
-	for {
-		buf := make([]byte, 1)
-		_, err := os.Stdin.Read(buf)
-		if err != nil {
-			return "", err
-		}
-
-		switch buf[0] {
-		case '\t': // Tab key
-			// Clear current line and move to next option
-			fmt.Fprint(os.Stderr, "\r\033[K") // Clear line
-			currentIndex = (currentIndex + 1) % len(options)
-			fmt.Fprintf(os.Stderr, "%s", fmtOpts(options))
-		case '\r', '\n': // Enter key
-			// Accept the current selection and return it to the caller
-			fmt.Fprintln(os.Stderr) // New line
-			return options[currentIndex], nil
-		case 27: // Escape or start of escape sequence
-			// Handle potential escape sequences here in the future,
-			// such as left arrow/right arrow, but for simplicity treat all
-			// escapes as cancellations for now.
-			return "", nil
-		default:
-			// Ignore other keys
-		}
-	}
-}
 
 func promptSpellAdd(args []string) (Entry, error) {
 	reader := bufio.NewScanner(os.Stdin)
@@ -204,8 +100,6 @@ func promptSpellAdd(args []string) (Entry, error) {
 
 // promptSpellParameters uses shell prompts to substitute parameters in a spell.
 func promptSpellParameters(spell *Spell) (string, error) {
-	fmt.Fprintf(os.Stderr, "%s\n", spell.Raw)
-
 	// Prompt user for parameters
 	paramValues := make(map[string]string)
 	reader := bufio.NewScanner(os.Stdin)
