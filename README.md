@@ -1,4 +1,4 @@
-# 🔮 Grimoire
+# Grimoire
 > *Your personal book of spells for command-line incantations*
 
 [demo.webm](https://github.com/user-attachments/assets/e30804d9-3253-46ac-a202-45a84eed8d91)
@@ -7,24 +7,22 @@
 
 **Note that this is is very much an in-progress piece of work. While it is functional, don't expect any stability or sanity quite yet. I'm using it personally right now but its not yet what I'd consider complete.**
 
-**📦 Depends on [fzf](https://github.com/junegunn/fzf) being in your $PATH**
+**Depends on [fzf](https://github.com/junegunn/fzf) being in your $PATH**
 
-## ✨ Features
+## Features
 
-- 📚 **Store command snippets** with descriptive names and documentation
-- 🎯 **Parameterize snippets** for flexible reuse
-- 🔍 **Quick search and retrieval** of your saved spells
-- ⚡ **Execute commands directly** from your grimoire
-- 🪄 **Simple, magic-themed interface** that makes CLI work feel like wizardry
+- **Store command snippets** with descriptive names and documentation
+- **Parameterize snippets** for flexible reuse
+- **Quick search and retrieval** of your saved spells
+- **Execute commands directly** from your grimoire
+- **Simple, magic-themed interface** that makes CLI work feel like wizardry
 
-## 🎓 Inspiration
+## Inspiration
 
-Grimoire was inspired by [pet](https://github.com/knqyf263/pet) but reimagined with:
-- A magical, witch and wizard themed aesthetic
-- A simpler codebase
-- Easier customization and understanding of internals for my own personal use (simply because I wrote it)
+Grimoire was inspired by [pet](https://github.com/knqyf263/pet) but with a goal of having a
+simpler, discoverable interface.
 
-## 🚀 Quick Start
+## Quick Start
 
 ```sh
 # Add a new spell to your grimoire
@@ -43,7 +41,7 @@ grimoire echo
 grimoire view <spell-name>
 ```
 
-## 📖 Example Spells
+## Example Spells
 
 ```txt
 Spell: openssl x509 -inform DER -outform PEM -in <path>
@@ -57,7 +55,7 @@ Name: slash-to-dash
 Description: Convert all forward slashes in a variable to dashes.
 ```
 
-## 🛠️ Installation
+## Installation
 
 ```sh
 # Clone the grimoire
