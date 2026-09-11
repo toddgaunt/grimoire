@@ -6,6 +6,9 @@ import (
 	"strings"
 )
 
+// paramRegex matches on text surrounded by <> without spaces.
+// This allows redirects to still be used by the spell as long
+// as there is a space.
 var paramRegex = regexp.MustCompile(`<([^\s][^<>]*[^\s])>`)
 
 // Param is a single parameter in a spell that indicates a value to be substituted

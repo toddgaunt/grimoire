@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -49,7 +50,8 @@ func main() {
 
 	switch subcommand {
 	case "help":
-		usage()
+		// Help was asked for, so it is what the user wanted to read: stdout.
+		usage(os.Stdout)
 		os.Exit(0)
 	case "add":
 		err = addCommand(conf, args)
@@ -64,8 +66,9 @@ func main() {
 	case "forget":
 		err = forgetCommand(conf)
 	default:
-		fmt.Printf("Unknown subcommand: %s\n", subcommand)
-		usage()
+		// Help as a diagnostic for a mistake: stderr.
+		fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", subcommand)
+		usage(os.Stderr)
 		os.Exit(1)
 	}
 
@@ -74,27 +77,27 @@ func main() {
 	}
 }
 
-func usage() {
-	fmt.Println("To best make use of this magical tome, you must give it a command.")
-	fmt.Println("Commands:")
-	fmt.Println("  help - Show this help message and exit")
-	fmt.Println("  add  - Add a new spell to the grimoire")
-	fmt.Println("  edit - Edit an existing spell in the grimoire")
-	fmt.Println("  view - View details of a spell from the grimoire")
-	fmt.Println("  echo - Find a spell in the grimoire and print it to stdout")
-	fmt.Println("  cast - Cast a spell from the grimoire")
+func usage(w io.Writer) {
+	fmt.Fprintln(w, "To best make use of this magical tome, you must give it a command.")
+	fmt.Fprintln(w, "Commands:")
+	fmt.Fprintln(w, "  help - Show this help message and exit")
+	fmt.Fprintln(w, "  add  - Add a new spell to the grimoire")
+	fmt.Fprintln(w, "  edit - Edit an existing spell in the grimoire")
+	fmt.Fprintln(w, "  view - View details of a spell from the grimoire")
+	fmt.Fprintln(w, "  echo - Find a spell in the grimoire and print it to stdout")
+	fmt.Fprintln(w, "  cast - Cast a spell from the grimoire")
 }
 
 func mainCommand(conf Config) error {
-	// If no arguments are provided, start by launching fzf to find a spell
-	// path. If it exists, prompt the user to either edit, view, or cast the spell.
+	// If no arguments are provided, start by finding a spell.
+	// If it exists, prompt the user for a command.
 	selection, err := find(conf.SpellPath)
 	if err != nil {
 		return err
 	}
 
 	if selection == "" {
-		fmt.Println("No spell selected")
+		fmt.Fprintln(os.Stderr, "No spell selected")
 		return nil
 	}
 
@@ -103,7 +106,7 @@ func mainCommand(conf Config) error {
 		return err
 	}
 
-	fmt.Printf("%s: %s\n", entry.Name, entry.Spell)
+	fmt.Fprintf(os.Stderr, "%s: %s\n", entry.Name, entry.Spell)
 
 	// Prompt the user with tab cycling
 	options := []string{"cast", "view", "edit", "echo"}
@@ -125,8 +128,10 @@ func mainCommand(conf Config) error {
 		err = editCommand(conf, []string{selection})
 	case "view":
 		err = viewCommand(conf, []string{selection})
+	case "echo":
+		err = echoCommand(conf, []string{selection})
 	default:
-		fmt.Println("Invalid action")
+		fmt.Fprintln(os.Stderr, "Invalid command")
 	}
 
 	return err
@@ -198,7 +203,7 @@ func writeSpell(spellPath string, entry Entry) error {
 		return err
 	}
 
-	fmt.Printf("%s written as %s\n", entry.Name, filename)
+	fmt.Fprintf(os.Stderr, "%s written as %s\n", entry.Name, filename)
 
 	return nil
 }
@@ -345,7 +350,7 @@ func castCommand(conf Config, args []string) error {
 	}
 
 	if selection == "" {
-		fmt.Println("No spell selected")
+		fmt.Fprintln(os.Stderr, "No spell selected")
 		return nil
 	}
 
@@ -353,7 +358,7 @@ func castCommand(conf Config, args []string) error {
 
 	file, err := os.Open(filepath)
 	if err != nil {
-		return fmt.Errorf("failed to read spell %s: %v", filepath, err)
+		return fmt.Errorf("failed to read spell: %v", err)
 	}
 	defer file.Close()
 
@@ -373,7 +378,9 @@ func castCommand(conf Config, args []string) error {
 				}
 			}
 
-			fmt.Printf("%s\n", spellText)
+			// Echo the spell to stderr, not stdout: stdout belongs to the
+			// spell being cast so that its output can be piped.
+			fmt.Fprintf(os.Stderr, "%s\n", spellText)
 
 			// Start a subprocess to run the spell
 			cmd := exec.Command("bash", "-c", spellText)
@@ -381,7 +388,7 @@ func castCommand(conf Config, args []string) error {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
-				fmt.Printf("Spell casting fizzled: %v\n", err)
+				fmt.Fprintf(os.Stderr, "Spell casting fizzled: %v\n", err)
 			}
 			break
 		}

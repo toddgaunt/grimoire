@@ -15,7 +15,7 @@ import (
 // Note: It would be better to use a go-native solution here rather than running
 // a sub-process to call stty for us.
 func setRawMode() error {
-	fmt.Print("\033[?25l")
+	fmt.Fprint(os.Stderr, "\033[?25l")
 	cmd := exec.Command("stty", "-echo", "cbreak")
 	cmd.Stdin = os.Stdin
 	return cmd.Run()
@@ -25,7 +25,7 @@ func setRawMode() error {
 // Note: It would be better to use a go-native solution here rather than running
 // a sub-process to call stty for us.
 func restoreTerminal() {
-	fmt.Print("\033[?25h")
+	fmt.Fprint(os.Stderr, "\033[?25h")
 	cmd := exec.Command("stty", "echo", "-cbreak")
 	cmd.Stdin = os.Stdin
 	cmd.Run()
@@ -81,8 +81,8 @@ func promptWithTabCycling(options []string) (string, error) {
 		return strings.Join(result, "|")
 	}
 
-	fmt.Println("Use <tab> to select:")
-	fmt.Printf("%s", fmtOpts(options))
+	fmt.Fprintln(os.Stderr, "Use <tab> to select:")
+	fmt.Fprintf(os.Stderr, "%s", fmtOpts(options))
 
 	for {
 		buf := make([]byte, 1)
@@ -94,12 +94,12 @@ func promptWithTabCycling(options []string) (string, error) {
 		switch buf[0] {
 		case '\t': // Tab key
 			// Clear current line and move to next option
-			fmt.Print("\r\033[K") // Clear line
+			fmt.Fprint(os.Stderr, "\r\033[K") // Clear line
 			currentIndex = (currentIndex + 1) % len(options)
-			fmt.Printf("%s", fmtOpts(options))
+			fmt.Fprintf(os.Stderr, "%s", fmtOpts(options))
 		case '\r', '\n': // Enter key
 			// Accept the current selection and return it to the caller
-			fmt.Println() // New line
+			fmt.Fprintln(os.Stderr) // New line
 			return options[currentIndex], nil
 		case 27: // Escape or start of escape sequence
 			// Handle potential escape sequences here in the future,
@@ -121,7 +121,7 @@ func promptSpell(args []string) (Entry, error) {
 	case 0:
 		reader.Buffer([]byte(entry.Spell), bufio.MaxScanTokenSize)
 		// No arguments provided, prompt for all fields
-		fmt.Print("Spell>")
+		fmt.Fprint(os.Stderr, "Spell>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
@@ -132,7 +132,7 @@ func promptSpell(args []string) (Entry, error) {
 			return entry, errors.New("command cannot be empty")
 		}
 
-		fmt.Print("Name>")
+		fmt.Fprint(os.Stderr, "Name>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
@@ -143,7 +143,7 @@ func promptSpell(args []string) (Entry, error) {
 			return entry, errors.New("name cannot be empty")
 		}
 
-		fmt.Print("Description>")
+		fmt.Fprint(os.Stderr, "Description>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
@@ -154,7 +154,7 @@ func promptSpell(args []string) (Entry, error) {
 		// One argument provided, assume it's the spell, prompt for name
 		entry.Spell = args[0]
 
-		fmt.Print("Name>")
+		fmt.Fprint(os.Stderr, "Name>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
@@ -165,7 +165,7 @@ func promptSpell(args []string) (Entry, error) {
 			return entry, errors.New("name cannot be empty")
 		}
 
-		fmt.Print("Description>")
+		fmt.Fprint(os.Stderr, "Description>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
@@ -179,7 +179,7 @@ func promptSpell(args []string) (Entry, error) {
 		entry.Spell = args[0]
 		entry.Name = args[1]
 
-		fmt.Print("Description>")
+		fmt.Fprint(os.Stderr, "Description>")
 		if reader.Scan() {
 			input := strings.TrimSpace(reader.Text())
 			if input != "" {
