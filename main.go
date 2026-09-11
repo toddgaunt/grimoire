@@ -358,7 +358,10 @@ func castCommand(conf Config, args []string) error {
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
-				fmt.Fprintf(os.Stderr, "Spell casting fizzled: %v\n", err)
+				if _, ok := err.(*exec.ExitError); !ok {
+					fmt.Fprintf(os.Stderr, "Spell casting fizzled: %v\n", err)
+				}
+				// If it's just a non-zero exit code, we don't need to print anything
 			}
 			break
 		}
